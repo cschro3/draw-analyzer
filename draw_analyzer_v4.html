@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Draw Analyzer 4.0</title>
+  <style>
+    :root{
+      --bg:#f5f8ff; --bg2:#edf3ff; --card:#fff; --line:#d7e1f2; --text:#102033;
+      --muted:#5f728d; --accent:#6b7cff; --accent-soft:#eef2ff; --good:#129c58;
+      --warn:#d28a00; --bad:#d13b49; --shadow:0 12px 30px rgba(16,32,51,.08); --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:linear-gradient(180deg,var(--bg),var(--bg2))}
+    .wrap{max-width:1280px;margin:0 auto;padding:16px}
+    .hero,.panel{background:var(--card);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+    .hero{padding:20px;margin-bottom:16px}
+    .panel{padding:16px}
+    h1{margin:0 0 6px 0;font-size:30px} h2{margin:0 0 12px 0;font-size:19px}
+    .sub,.muted{color:var(--muted)} .sub{line-height:1.45;font-size:14px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+    .chip{background:var(--accent-soft);color:#2d4188;border-radius:999px;padding:7px 12px;font-size:12px;font-weight:800}
+    .layout{display:grid;grid-template-columns:390px 1fr;gap:16px}
+    @media (max-width:1020px){.layout{grid-template-columns:1fr}}
+    .row,.row3,.cards4,.split{display:grid;gap:12px}
+    .row{grid-template-columns:1fr 1fr}
+    .row3{grid-template-columns:1fr 1fr 1fr}
+    .cards4{grid-template-columns:repeat(4,1fr)}
+    .split{grid-template-columns:1fr 1fr}
+    @media (max-width:860px){.split,.row,.row3,.cards4{grid-template-columns:1fr}}
+    label{display:block;font-size:13px;font-weight:800;margin:0 0 6px 0}
+    input,select{width:100%;border:1px solid var(--line);border-radius:14px;padding:12px;font-size:15px;background:#fff;color:var(--text);outline:none}
+    input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(107,124,255,.12)}
+    .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    button{border:0;border-radius:14px;padding:12px 15px;font-size:14px;font-weight:900;cursor:pointer}
+    .primary{background:var(--accent);color:#fff}.secondary{background:#edf2ff;color:#2d45a0}.ghost{background:#f5f7fb;color:#304259}.danger{background:#ffeef1;color:#9f1627}
+    .status,.summary,.empty{padding:14px;border-radius:16px;font-size:14px;line-height:1.45}
+    .status{margin-top:12px;background:#f8fbff;border:1px dashed var(--line);color:var(--muted);white-space:pre-line}
+    .summary{background:#f8fbff;border:1px solid var(--line);white-space:pre-line}
+    .empty{border:1px dashed var(--line);color:var(--muted);background:#fafcff}
+    .fixture-list,.history-list{display:grid;gap:10px;margin-top:12px;max-height:460px;overflow:auto}
+    .fixture{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px;cursor:pointer}
+    .fixture:hover{border-color:var(--accent)} .fixture.active{background:#f4f7ff;border-color:var(--accent)}
+    .fixture-top,.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap}
+    .teams{font-weight:900;line-height:1.35}.small{font-size:12px}
+    .pill{background:#eef2ff;color:#2b4497;font-size:12px;font-weight:900;padding:7px 10px;border-radius:999px;white-space:nowrap}
+    .metric{border:1px solid var(--line);border-radius:16px;background:#fbfdff;padding:14px}
+    .metric .k{font-size:12px;color:var(--muted);margin-bottom:6px}.metric .v{font-weight:900;font-size:28px;line-height:1.05}
+    .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .table{width:100%;border-collapse:collapse;font-size:14px}
+    .table th,.table td{padding:10px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    .table th{font-size:12px;color:var(--muted)}
+    .ranking-item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+    .rank{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#eef2ff;color:#29408f;font-weight:900}
+    .scorebar{height:10px;border-radius:999px;background:#eef3fb;overflow:hidden;margin-top:6px}.scorefill{height:100%;background:linear-gradient(90deg,#a7b6ff,#6b7cff)}
+    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="chips">
+      <div class="chip">4.0 Auto-Live</div>
+      <div class="chip">Top-5 Ranking</div>
+      <div class="chip">Verlauf & Export</div>
+      <div class="chip">Hellseher Light</div>
+    </div>
+    <h1>🔮⚽ Draw Analyzer 4.0</h1>
+    <div class="sub">Version 4 lädt auf Wunsch sofort echte Spiele, sortiert automatisch nach Draw-Score, prüft optional den Value über deine Remis-Quote und fällt bei Problemen sauber auf die Demo zurück.</div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>Setup</h2>
+      <div class="row">
+        <div>
+          <label for="token">football-data.org Token</label>
+          <input id="token" type="password" placeholder="Token ist bereits hinterlegt">
+        </div>
+        <div>
+          <label for="competition">Wettbewerb</label>
+          <select id="competition">
+            <option value="BL1">Bundesliga</option>
+            <option value="BL2">2. Bundesliga</option>
+            <option value="PL">Premier League</option>
+            <option value="PD">La Liga</option>
+            <option value="SA">Serie A</option>
+            <option value="FL1">Ligue 1</option>
+            <option value="DED">Eredivisie</option>
+            <option value="PPL">Primeira Liga</option>
+            <option value="CL">Champions League</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row3">
+        <div>
+          <label for="daysAhead">Zeitraum</label>
+          <select id="daysAhead">
+            <option value="3">3 Tage</option>
+            <option value="5" selected>5 Tage</option>
+            <option value="7">7 Tage</option>
+            <option value="10">10 Tage</option>
+          </select>
+        </div>
+        <div>
+          <label for="minScore">Min. Score Filter</label>
+          <select id="minScore">
+            <option value="0">alle</option>
+            <option value="40">ab 40</option>
+            <option value="60">ab 60</option>
+            <option value="75">ab 75</option>
+          </select>
+        </div>
+        <div>
+          <label for="odds">Optionale Remis-Quote</label>
+          <input id="odds" type="number" step="0.01" placeholder="z. B. 3.35">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="loadBtn">Alles automatisch laden</button>
+        <button class="secondary" id="demoBtn">Demo starten</button>
+        <button class="ghost" id="autoStartBtn">Auto-Start: an</button>
+        <button class="ghost" id="saveBtn">Token speichern</button>
+        <button class="ghost" id="exportBtn">Verlauf exportieren</button>
+        <button class="danger" id="clearBtn">Reset</button>
+      </div>
+
+      <div id="status" class="status">Bereit. Live-Daten werden automatisch geladen, wenn ein Token vorhanden ist. Sonst startet die Demo.</div>
+
+      <div style="margin-top:16px">
+        <div class="toolbar">
+          <h2 style="margin:0">Spiele</h2>
+          <input id="searchFixture" type="text" placeholder="Team suchen">
+        </div>
+        <div id="fixtureList" class="fixture-list"></div>
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="toolbar">
+          <h2 style="margin:0">Verlauf</h2>
+          <div class="small muted">gespeichert lokal</div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </div>
+
+      <div class="note">Hinweis: Version 4 speichert den Token lokal, kann beim Start automatisch laden und fällt bei Fehlern auf die Demo zurück. Für ein öffentliches GitHub-Repo solltest du einen neuen Token verwenden.</div>
+    </div>
+
+    <div>
+      <div class="panel" style="margin-bottom:16px">
+        <div class="toolbar">
+          <h2 style="margin:0">Top-Kandidaten</h2>
+          <div class="small muted">automatisch nach Score sortiert</div>
+        </div>
+        <div id="rankingBox" class="empty">Noch keine Analysen geladen.</div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <h2 style="margin:0">Spielanalyse</h2>
+          <div class="small muted" id="selectedTitle">Kein Spiel gewählt</div>
+        </div>
+
+        <div id="resultEmpty" class="empty">Wähle links ein Spiel oder starte die Demo.</div>
+
+        <div id="resultBox" style="display:none">
+          <div class="cards4">
+            <div class="metric"><div class="k">Score</div><div class="v" id="scoreVal">0</div></div>
+            <div class="metric"><div class="k">Kategorie</div><div class="v" id="categoryVal" style="font-size:18px">–</div></div>
+            <div class="metric"><div class="k">Draw-Wahrscheinlichkeit</div><div class="v" id="probVal" style="font-size:22px">–</div></div>
+            <div class="metric"><div class="k">Value</div><div class="v" id="valueVal" style="font-size:18px">–</div></div>
+          </div>
+
+          <div class="split" style="margin-top:16px">
+            <div>
+              <h2>Details</h2>
+              <table class="table">
+                <thead><tr><th>Kriterium</th><th>Punkte</th><th>Begründung</th></tr></thead>
+                <tbody id="criteriaBody"></tbody>
+              </table>
+            </div>
+            <div>
+              <h2>Kurzes Fazit</h2>
+              <div id="summary" class="summary"></div>
+              <div class="note">Die App sucht keine Garantien, sondern strukturell stärkere Draw-Spiele und vergleicht optional Preis gegen modellierte Wahrscheinlichkeit.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const API_BASE = "https://api.football-data.org/v4";
+const DEFAULT_TOKEN = "31b4a6be2c3e473b896418fa0cbb81ef";
+let state = { fixtures: [], standings: [], analyses: [], selectedId: null };
+const demo = makeDemo();
+
+function makeDemo() {
+  const teams = {1:"FC Nordstadt",2:"SV Rheinhafen",3:"TSV Uferstadt",4:"Sporting Süd",5:"SC Hohenfels",6:"Dynamo See"};
+  const row = (pos,id,p,w,d,l,pts,gf,ga) => ({position:pos,team:{id,name:teams[id]},playedGames:p,won:w,draw:d,lost:l,points:pts,goalsFor:gf,goalsAgainst:ga,goalDifference:gf-ga});
+  const fx = (id,h,a,days) => ({id,utcDate:new Date(Date.now()+days*86400000).toISOString(),status:"TIMED",competition:{name:"Demo League",code:"D1"},homeTeam:{id:h,name:teams[h]},awayTeam:{id:a,name:teams[a]}});
+  const fin = (h,a,hs,as) => ({status:"FINISHED",utcDate:new Date(Date.now()-(Math.random()*70+3)*86400000).toISOString(),homeTeam:{id:h,name:teams[h]},awayTeam:{id:a,name:teams[a]},score:{fullTime:{home:hs,away:as},halfTime:{home:Math.min(hs,1),away:Math.min(as,1)}}});
+  return {
+    standings:[
+      {type:"TOTAL",table:[row(1,1,26,9,10,7,37,30,27),row(2,2,26,8,10,8,34,28,29),row(3,3,26,9,7,10,34,36,38),row(4,4,26,10,5,11,35,40,41),row(5,5,26,11,4,11,37,37,36),row(6,6,26,7,8,11,29,29,35)]},
+      {type:"HOME",table:[row(1,1,13,4,6,3,18,14,12),row(2,2,13,4,5,4,17,14,14),row(3,3,13,5,3,5,18,20,20),row(4,4,13,6,2,5,20,21,20),row(5,5,13,7,2,4,23,19,16),row(6,6,13,4,4,5,16,13,18)]},
+      {type:"AWAY",table:[row(1,1,13,5,4,4,19,16,15),row(2,2,13,4,5,4,17,14,15),row(3,3,13,4,4,5,16,16,18),row(4,4,13,4,3,6,15,19,21),row(5,5,13,4,2,7,14,18,20),row(6,6,13,3,4,6,13,16,17)]}
+    ],
+    fixtures:[fx(101,1,2,1),fx(102,3,6,2),fx(103,4,5,3)],
+    teamMatches:{
+      1:[fin(1,2,1,1),fin(1,3,1,0),fin(1,4,0,0),fin(1,5,1,1),fin(1,6,1,1),fin(3,1,1,1),fin(2,1,0,0),fin(4,1,2,1),fin(5,1,1,0),fin(6,1,0,0)],
+      2:[fin(2,1,1,1),fin(2,3,0,0),fin(2,4,1,1),fin(5,2,1,1),fin(6,2,0,0),fin(3,2,1,0),fin(4,2,1,0),fin(2,5,1,0),fin(2,6,1,1),fin(1,2,1,1)],
+      3:[fin(3,1,1,1),fin(3,2,1,0),fin(3,4,2,2),fin(5,3,2,0),fin(3,6,1,1),fin(4,3,1,1),fin(6,3,0,1),fin(3,5,1,3),fin(2,3,0,0),fin(1,3,1,0)],
+      4:[fin(4,1,2,1),fin(4,2,1,0),fin(4,3,2,2),fin(5,4,1,1),fin(6,4,1,2),fin(1,4,0,0),fin(2,4,1,1),fin(3,4,1,1),fin(4,5,1,2),fin(4,6,0,0)],
+      5:[fin(5,1,1,0),fin(5,2,1,1),fin(5,3,2,0),fin(5,4,1,1),fin(5,6,0,0),fin(1,5,1,1),fin(2,5,1,0),fin(3,5,1,3),fin(4,5,1,2),fin(6,5,1,1)],
+      6:[fin(6,1,0,0),fin(6,2,0,0),fin(6,3,0,1),fin(6,4,1,2),fin(6,5,1,1),fin(1,6,1,1),fin(2,6,1,1),fin(3,6,1,1),fin(4,6,0,0),fin(5,6,0,0)]
+    }
+  };
+}
+
+function esc(s){return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+function fmtDate(s){return new Date(s).toLocaleString("de-DE",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});}
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function pct(v){return ((v||0)*100).toFixed(0)+"%";}
+function setStatus(msg){$("status").textContent = msg;}
+function hasToken(){ return !!(($("token").value || "").trim() || DEFAULT_TOKEN); }
+function getToken(){ return ($("token").value || "").trim() || localStorage.getItem("draw21_token") || DEFAULT_TOKEN; }
+function updateAutoStartBtn(){
+  const enabled = localStorage.getItem("draw21_autostart") !== "0";
+  const btn = $("autoStartBtn");
+  if(btn) btn.textContent = enabled ? "Auto-Start: an" : "Auto-Start: aus";
+}
+
+function getTableByType(standings,type){const found=(standings||[]).find(s=>s.type===type);return found ? found.table : null;}
+function findTeamRow(table,team){return (table||[]).find(r => r.team.id === team.id || r.team.name === team.name) || null;}
+
+function summarizeTeam(matches, team){
+  const arr = (matches||[]).filter(m=>m.status==="FINISHED").slice(0,10);
+  let wins=0,draws=0,losses=0,gf=0,ga=0,close=0,lowTotal=0,halftimeTight=0,drawScore=0;
+  for(const m of arr){
+    const isHome = m.homeTeam.id === team.id || m.homeTeam.name === team.name;
+    const hs = m.score?.fullTime?.home ?? 0, as = m.score?.fullTime?.away ?? 0;
+    const hth = m.score?.halfTime?.home ?? 0, hta = m.score?.halfTime?.away ?? 0;
+    const tg = isHome ? hs : as, og = isHome ? as : hs, th = isHome ? hth : hta, oh = isHome ? hta : hth;
+    gf += tg; ga += og;
+    if(tg === og) draws++; else if(tg > og) wins++; else losses++;
+    if(Math.abs(tg-og) <= 1) close++;
+    if(tg + og <= 2) lowTotal++;
+    if(Math.abs(th-oh) <= 1 && th + oh <= 1) halftimeTight++;
+    if(tg === og && (tg===0 || tg===1 || tg===2)) drawScore++;
+  }
+  return {sample:arr.length,wins,draws,losses,gf,ga,drawRate:arr.length?draws/arr.length:0,gfPer:arr.length?gf/arr.length:0,gaPer:arr.length?ga/arr.length:0,closeRate:arr.length?close/arr.length:0,lowTotalRate:arr.length?lowTotal/arr.length:0,halftimeTightRate:arr.length?halftimeTight/arr.length:0,drawScoreRate:arr.length?drawScore/arr.length:0,formPoints:wins*3+draws};
+}
+
+function buildCriteria({homeStats, awayStats, homeRowT, awayRowT, homeRowH, awayRowA}){
+  const items = [];
+  const avgDraw = (homeStats.drawRate + awayStats.drawRate) / 2;
+  items.push({name:"Remis-Rate beider Teams",points:clamp(Math.round(avgDraw*30),0,12),reason:`letzte Spiele: ${pct(homeStats.drawRate)} / ${pct(awayStats.drawRate)}`});
+  const homeRole = homeRowH?.playedGames ? homeRowH.draw/homeRowH.playedGames : homeStats.drawRate;
+  const awayRole = awayRowA?.playedGames ? awayRowA.draw/awayRowA.playedGames : awayStats.drawRate;
+  items.push({name:"Heim-/Auswärtsprofil",points:clamp(Math.round(((homeRole+awayRole)/2)*24),0,10),reason:`Heim ${pct(homeRole)} / Auswärts ${pct(awayRole)}`});
+  items.push({name:"Enge Ergebnisse",points:clamp(Math.round(((homeStats.closeRate+awayStats.closeRate+homeStats.drawScoreRate+awayStats.drawScoreRate)/4)*18),0,10),reason:`enge Spiele: ${pct(homeStats.closeRate)} / ${pct(awayStats.closeRate)}`});
+  const totalGoalProfile = (homeStats.gfPer+homeStats.gaPer+awayStats.gfPer+awayStats.gaPer)/2;
+  let goalPts = 10; if(totalGoalProfile>3.4)goalPts=1; else if(totalGoalProfile>3.0)goalPts=3; else if(totalGoalProfile>2.7)goalPts=5; else if(totalGoalProfile>2.4)goalPts=7; else if(totalGoalProfile>2.0)goalPts=8;
+  items.push({name:"Torprofil",points:goalPts,reason:`durchschnittliches Spielprofil: ${totalGoalProfile.toFixed(2)} Tore`});
+  const pointsDiff = Math.abs((homeRowT?.points ?? 0)-(awayRowT?.points ?? 0));
+  const gdDiff = Math.abs((homeRowT?.goalDifference ?? 0)-(awayRowT?.goalDifference ?? 0));
+  let balPts=10; if(pointsDiff>18||gdDiff>20)balPts=2; else if(pointsDiff>12||gdDiff>15)balPts=4; else if(pointsDiff>8||gdDiff>11)balPts=6; else if(pointsDiff>4||gdDiff>7)balPts=8;
+  items.push({name:"Leistungsbalance",points:balPts,reason:`Punktediff ${pointsDiff}, Torbilanzdiff ${gdDiff}`});
+  const formDiff = Math.abs(homeStats.formPoints-awayStats.formPoints);
+  let formPts=12; if(formDiff>10)formPts=2; else if(formDiff>7)formPts=4; else if(formDiff>5)formPts=6; else if(formDiff>3)formPts=8; else if(formDiff>1)formPts=10;
+  items.push({name:"Formähnlichkeit",points:formPts,reason:`Formpunkte letzte 10 Spiele: ${homeStats.formPoints} vs. ${awayStats.formPoints}`});
+  items.push({name:"Risikoprofil",points:clamp(Math.round(((homeStats.lowTotalRate+awayStats.lowTotalRate)/2)*12),0,10),reason:`Spiele mit max. 2 Toren: ${pct(homeStats.lowTotalRate)} / ${pct(awayStats.lowTotalRate)}`});
+  items.push({name:"Halbzeitprofil",points:clamp(Math.round(((homeStats.halftimeTightRate+awayStats.halftimeTightRate)/2)*10),0,8),reason:`knappe Halbzeiten: ${pct(homeStats.halftimeTightRate)} / ${pct(awayStats.halftimeTightRate)}`});
+  const posDiff = Math.abs((homeRowT?.position ?? 99)-(awayRowT?.position ?? 99));
+  let ctxPts=3; if(posDiff<=1)ctxPts=10; else if(posDiff<=3)ctxPts=8; else if(posDiff<=5)ctxPts=6; else if(posDiff<=8)ctxPts=4;
+  items.push({name:"Tabellenkontext",points:ctxPts,reason:`Tabellenplätze: ${homeRowT?.position ?? "-"} vs. ${awayRowT?.position ?? "-"}`});
+  const attackAvg = (homeStats.gfPer + awayStats.gfPer) / 2;
+  const attackPts = attackAvg < 1.05 ? 5 : attackAvg < 1.2 ? 4 : attackAvg < 1.4 ? 3 : attackAvg < 1.6 ? 2 : 1;
+  items.push({name:"Offensivbremse",points:attackPts,reason:`durchschnittlich erzielte Tore: ${attackAvg.toFixed(2)}`});
+  const marketPts = (pointsDiff<=5 && posDiff<=4) ? 3 : (pointsDiff<=10 ? 2 : 1);
+  items.push({name:"Marktgleichgewicht",points:marketPts,reason:`Näherungswert aus Tabelle und Form`});
+  return items;
+}
+
+function category(score){if(score<40)return"kein Tipp";if(score<60)return"beobachten";if(score<75)return"interessant";return"Value-Prüfung";}
+function probabilityFromScore(score, homeStats, awayStats, homeRow, awayRow){
+  let base; if(score<40)base=22.5+(score*0.10); else if(score<60)base=26+((score-40)*0.18); else if(score<75)base=29.6+((score-60)*0.18); else base=32.3+((score-75)*0.22);
+  const avgDrawBoost = (((homeStats.drawRate+awayStats.drawRate)/2)*100 - 28) * 0.10;
+  const roleBoost = ((((homeRow?.draw ?? 0)/Math.max(homeRow?.playedGames ?? 1,1))+((awayRow?.draw ?? 0)/Math.max(awayRow?.playedGames ?? 1,1)))/2)*8;
+  const lowGoalBoost = ((homeStats.lowTotalRate + awayStats.lowTotalRate)/2) * 4;
+  return clamp(base + avgDrawBoost + roleBoost + lowGoalBoost - 2.5, 18, 45);
+}
+function valueText(edge, implied){if(implied===null)return"ohne Quote"; if(edge>=3)return"Value +"+edge.toFixed(1)+" %-Punkte"; if(edge>=1)return"knapp positiv +"+edge.toFixed(1); return"kein Value";}
+function buildSummary(fixture, score, probability, implied, edge, homeStats, awayStats){
+  const lines = [];
+  lines.push(`${fixture.homeTeam.name} vs. ${fixture.awayTeam.name}`);
+  lines.push(`Score: ${score}/100 · Kategorie: ${category(score)}`);
+  lines.push(`Draw-Schätzung: ${probability.toFixed(1)} %`);
+  lines.push(`Remis-Raten zuletzt: ${pct(homeStats.drawRate)} / ${pct(awayStats.drawRate)}`);
+  lines.push(`Torprofile: ${homeStats.gfPer.toFixed(2)}:${homeStats.gaPer.toFixed(2)} und ${awayStats.gfPer.toFixed(2)}:${awayStats.gaPer.toFixed(2)}`);
+  if(implied !== null){
+    lines.push(`Markt über Quote: ${implied.toFixed(1)} %`);
+    lines.push(edge >= 3 ? `Fazit: spielbarer Value-Kandidat.` : edge >= 1 ? `Fazit: knapp positiv, eher nur selektiv.` : `Fazit: Draw-Profil okay, aber preislich kein sauberer Value.`);
+  } else {
+    lines.push(`Fazit: Für die Value-Prüfung noch eine Remis-Quote eintragen.`);
+  }
+  return lines.join("\n");
+}
+
+function clearResult(){
+  state.selectedId = null;
+  $("resultBox").style.display = "none";
+  $("resultEmpty").style.display = "block";
+  $("selectedTitle").textContent = "Kein Spiel gewählt";
+}
+
+function saveToken(){
+  const val = ($("token").value || "").trim() || DEFAULT_TOKEN;
+  localStorage.setItem("draw21_token", val);
+  $("token").value = val;
+  setStatus("Token lokal gespeichert.");
+}
+function restoreToken(){
+  const t = localStorage.getItem("draw21_token") || DEFAULT_TOKEN;
+  if(t) $("token").value = t;
+  updateAutoStartBtn();
+}
+
+function saveHistoryItem(a){
+  const arr = JSON.parse(localStorage.getItem("draw21_history") || "[]");
+  const key = a.fixture.id + "|" + a.fixture.utcDate;
+  const next = arr.filter(x => x.key !== key);
+  next.unshift({key, savedAt:new Date().toISOString(), fixture:a.fixture, score:a.score, category:a.category, probability:a.probability, valueText:a.valueText});
+  localStorage.setItem("draw21_history", JSON.stringify(next.slice(0,25)));
+  renderHistory();
+}
+function renderHistory(){
+  const arr = JSON.parse(localStorage.getItem("draw21_history") || "[]");
+  $("historyList").innerHTML = arr.length ? arr.map(item => `
+    <div class="fixture">
+      <div class="fixture-top">
+        <div><div class="teams">${esc(item.fixture.homeTeam.name)} vs. ${esc(item.fixture.awayTeam.name)}</div><div class="small muted">${fmtDate(item.fixture.utcDate)} · ${esc(item.category)}</div></div>
+        <div class="pill">${item.score}</div>
+      </div>
+      <div class="small muted">${esc(item.valueText || "")}</div>
+    </div>`).join("") : `<div class="empty">Noch kein Verlauf gespeichert.</div>`;
+}
+function exportHistory(){
+  const arr = JSON.parse(localStorage.getItem("draw21_history") || "[]");
+  const blob = new Blob([JSON.stringify(arr,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "draw-analyzer-2-1-history.json";
+  a.click();
+}
+function resetAll(){
+  localStorage.removeItem("draw21_token");
+  $("token").value = DEFAULT_TOKEN; $("odds").value = ""; $("searchFixture").value = ""; $("minScore").value = "0";
+  state = { fixtures: [], standings: [], analyses: [], selectedId: null };
+  $("fixtureList").innerHTML = `<div class="empty">Noch keine Spiele geladen.</div>`;
+  $("rankingBox").className = "empty"; $("rankingBox").textContent = "Noch keine Analysen geladen.";
+  clearResult(); renderHistory(); setStatus("Zurückgesetzt.");
+}
+
+async function apiFetch(path){
+  const token = getToken();
+  if(!token) throw new Error("Bitte zuerst einen football-data.org Token eintragen.");
+  const res = await fetch(API_BASE + path, {headers:{"X-Auth-Token":token}});
+  if(!res.ok){
+    const txt = await res.text();
+    throw new Error(`API-Fehler ${res.status}: ${txt.slice(0,180)}`);
+  }
+  return await res.json();
+}
+
+function computeAnalyses(fixtures, standings, teamMatchesSource){
+  const totalTable = getTableByType(standings, "TOTAL");
+  const homeTable = getTableByType(standings, "HOME") || totalTable;
+  const awayTable = getTableByType(standings, "AWAY") || totalTable;
+  const odds = Number($("odds").value || "");
+  return fixtures.map(fixture => {
+    const homeStats = summarizeTeam(teamMatchesSource[fixture.homeTeam.id] || [], fixture.homeTeam);
+    const awayStats = summarizeTeam(teamMatchesSource[fixture.awayTeam.id] || [], fixture.awayTeam);
+    const homeRowT = findTeamRow(totalTable, fixture.homeTeam), awayRowT = findTeamRow(totalTable, fixture.awayTeam);
+    const homeRowH = findTeamRow(homeTable, fixture.homeTeam), awayRowA = findTeamRow(awayTable, fixture.awayTeam);
+    const criteria = buildCriteria({homeStats, awayStats, homeRowT, awayRowT, homeRowH, awayRowA});
+    const score = criteria.reduce((sum,x) => sum + x.points, 0);
+    const probability = probabilityFromScore(score, homeStats, awayStats, homeRowH || homeRowT, awayRowA || awayRowT);
+    const implied = odds ? (100 / odds) : null;
+    const edge = implied !== null ? probability - implied : null;
+    return {fixture, criteria, score, probability, implied, edge, category:category(score), valueText:valueText(edge, implied), summary:buildSummary(fixture, score, probability, implied, edge, homeStats, awayStats)};
+  }).sort((a,b) => (b.score-a.score) || (b.probability-a.probability));
+}
+
+async function loadDemo(){
+  setStatus("Demo wird geladen …");
+  state.fixtures = demo.fixtures;
+  state.standings = demo.standings;
+  state.analyses = computeAnalyses(demo.fixtures, demo.standings, demo.teamMatches);
+  $("minScore").value = "0";
+  renderFixtureList();
+  renderRanking();
+  if(state.analyses.length) selectAnalysis(state.analyses[0].fixture.id);
+  setStatus(`Demo geladen. ${state.analyses.length} Spiele bewertet.`);
+}
+
+async function loadLive(){
+  try{
+    setStatus("Lade Spiele, Tabellen und Teamdaten …");
+    clearResult();
+    const code = $("competition").value;
+    const days = Number($("daysAhead").value);
+    const from = new Date().toISOString().slice(0,10);
+    const to = new Date(Date.now() + days*86400000).toISOString().slice(0,10);
+
+    const [matchesData, standingsData] = await Promise.all([
+      apiFetch(`/competitions/${code}/matches?dateFrom=${from}&dateTo=${to}&status=TIMED`),
+      apiFetch(`/competitions/${code}/standings`)
+    ]);
+
+    state.fixtures = matchesData.matches || [];
+    state.standings = standingsData.standings || [];
+    if(!state.fixtures.length){
+      state.analyses = [];
+      renderFixtureList(); renderRanking();
+      setStatus("Keine anstehenden Spiele gefunden. Demo wird als Fallback geladen.");
+      await loadDemo();
+      return;
+    }
+
+    const teamIds = [...new Set(state.fixtures.flatMap(f => [f.homeTeam.id, f.awayTeam.id]))];
+    const matchMap = {};
+    for(let i=0; i<teamIds.length; i++){
+      setStatus(`Lade Teamdaten ${i+1}/${teamIds.length} …`);
+      const data = await apiFetch(`/teams/${teamIds[i]}/matches?status=FINISHED&limit=10`);
+      matchMap[teamIds[i]] = data.matches || [];
+    }
+
+    state.analyses = computeAnalyses(state.fixtures, state.standings, matchMap);
+    renderFixtureList(); renderRanking();
+    if(state.analyses.length) selectAnalysis(state.analyses[0].fixture.id);
+    setStatus(`Fertig. ${state.analyses.length} Spiele automatisch bewertet.`);
+  } catch(err){
+    setStatus("Live-Fehler:\n" + err.message + "\n\nFallback: Demo wird geladen.");
+    await loadDemo();
+  }
+}
+
+function renderFixtureList(){
+  const query = $("searchFixture").value.trim().toLowerCase();
+  const minScore = Number($("minScore").value);
+  const filtered = (state.analyses || []).filter(a => a.score >= minScore && (!query || `${a.fixture.homeTeam.name} ${a.fixture.awayTeam.name}`.toLowerCase().includes(query)));
+  $("fixtureList").innerHTML = filtered.length ? filtered.map(a => `
+    <div class="fixture ${state.selectedId===a.fixture.id ? 'active' : ''}" data-id="${a.fixture.id}">
+      <div class="fixture-top">
+        <div><div class="teams">${esc(a.fixture.homeTeam.name)}<br><span class="muted">vs.</span> ${esc(a.fixture.awayTeam.name)}</div><div class="small muted">${fmtDate(a.fixture.utcDate)}</div></div>
+        <div class="pill">${a.score}</div>
+      </div>
+      <div class="small muted">${esc(a.category)} · ${a.probability.toFixed(1)} % · ${esc(a.valueText)}</div>
+      <div class="scorebar"><div class="scorefill" style="width:${a.score}%"></div></div>
+    </div>`).join("") : `<div class="empty">Keine Spiele mit diesem Filter gefunden.</div>`;
+  [...document.querySelectorAll("#fixtureList .fixture[data-id]")].forEach(el => el.addEventListener("click", () => selectAnalysis(Number(el.dataset.id))));
+}
+
+function renderRanking(){
+  $("rankingBox").className = state.analyses.length ? "" : "empty";
+  $("rankingBox").innerHTML = state.analyses.length ? state.analyses.slice(0,5).map((a, idx) => `
+    <div class="ranking-item">
+      <div class="rank">${idx+1}</div>
+      <div><div><strong>${esc(a.fixture.homeTeam.name)} vs. ${esc(a.fixture.awayTeam.name)}</strong></div><div class="small muted">${fmtDate(a.fixture.utcDate)} · ${esc(a.category)} · ${a.probability.toFixed(1)} %</div><div class="scorebar"><div class="scorefill" style="width:${a.score}%"></div></div></div>
+      <div class="pill">${a.score}</div>
+    </div>`).join("") : "Noch keine Analysen geladen.";
+}
+
+function selectAnalysis(id){
+  state.selectedId = id;
+  const a = state.analyses.find(x => x.fixture.id === id);
+  renderFixtureList();
+  if(!a) return;
+  $("selectedTitle").textContent = `${a.fixture.homeTeam.name} vs. ${a.fixture.awayTeam.name}`;
+  $("scoreVal").textContent = a.score;
+  $("categoryVal").textContent = a.category;
+  $("probVal").textContent = a.probability.toFixed(1) + "%";
+  const valueEl = $("valueVal");
+  valueEl.textContent = a.valueText;
+  valueEl.className = "v";
+  if(a.implied !== null){ valueEl.className = a.edge >= 3 ? "v good" : a.edge >= 1 ? "v warn" : "v bad"; }
+  $("criteriaBody").innerHTML = a.criteria.map(c => `<tr><td>${esc(c.name)}</td><td><strong>${c.points}</strong></td><td>${esc(c.reason)}</td></tr>`).join("");
+  $("summary").textContent = a.summary;
+  $("resultEmpty").style.display = "none";
+  $("resultBox").style.display = "block";
+  saveHistoryItem(a);
+}
+
+$("loadBtn").addEventListener("click", loadLive);
+$("demoBtn").addEventListener("click", loadDemo);
+$("saveBtn").addEventListener("click", saveToken);
+$("exportBtn").addEventListener("click", exportHistory);
+$("clearBtn").addEventListener("click", resetAll);
+$("searchFixture").addEventListener("input", renderFixtureList);
+$("minScore").addEventListener("change", renderFixtureList);
+$("autoStartBtn").addEventListener("click", () => {
+  const enabled = localStorage.getItem("draw21_autostart") !== "0";
+  localStorage.setItem("draw21_autostart", enabled ? "0" : "1");
+  updateAutoStartBtn();
+  setStatus(enabled ? "Auto-Start deaktiviert." : "Auto-Start aktiviert.");
+});
+$("odds").addEventListener("change", () => {
+  if(state.fixtures.length){
+    hasToken() ? loadLive() : loadDemo();
+  }
+});
+
+restoreToken();
+renderHistory();
+$("fixtureList").innerHTML = `<div class="empty">Noch keine Spiele geladen.</div>`;
+(async function boot(){
+  const enabled = localStorage.getItem("draw21_autostart") !== "0";
+  if(enabled){
+    if(hasToken()){
+      setStatus("Auto-Start aktiv: Live-Daten werden geladen …");
+      await loadLive();
+    } else {
+      setStatus("Auto-Start aktiv, aber ohne Token. Demo wird geladen …");
+      await loadDemo();
+    }
+  }
+})();
+</script>
+</body>
+</html>
